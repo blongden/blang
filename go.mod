@@ -1,3 +1,3 @@
-module longden.me/blolang
+module longden.me/blang
 
 go 1.21.1

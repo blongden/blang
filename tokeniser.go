@@ -14,6 +14,10 @@ const (
 	Let
 	Eq
 	Identifier
+	Plus
+	Minus
+	Star
+	Fslash
 )
 
 type Token struct {
@@ -69,6 +73,18 @@ func tokenise(data []byte) []Token {
 		} else if string(src.peek()) == "=" {
 			src.consume()
 			tokens = append(tokens, Token{token_type: Eq})
+		} else if string(src.peek()) == "+" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Plus})
+		} else if string(src.peek()) == "-" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Minus})
+		} else if string(src.peek()) == "*" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Star})
+		} else if string(src.peek()) == "/" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Fslash})
 		} else {
 			panic(fmt.Sprintf("No idea what this is yet at position %d (%c)", src.sp, src.src[src.sp]))
 		}

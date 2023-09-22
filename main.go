@@ -14,7 +14,6 @@ func main() {
 
 	tokens := Tokens{tokens: tokenise(data)}
 	ast := tokens.parse()
-	fmt.Println(ast)
 	generate(ast)
 
 	cmd := exec.Command("nasm", "-f", "macho64", "test.a", "-o", "test.o")
