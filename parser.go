@@ -90,6 +90,8 @@ func get_operator_prec(op TokenType) *int {
 
 func (t *Tokens) parse_expr(min_prec int) *Node {
 	expr := t.parse_term()
+
+	// Future me: read this for an explaination on how this works https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
 	for {
 		tok := t.peek()
 		if tok == nil {

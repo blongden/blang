@@ -87,7 +87,7 @@ func (g *Generator) gen_expr(node *Node) {
 		g.gen_term(node.rhs) // store value on stack
 		g.vars = append(g.vars, Variable{name: node.lhs.value, loc: g.stack_size})
 	default:
-		panic("can't parse something")
+		panic("Can't parse expression")
 	}
 }
 
