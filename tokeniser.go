@@ -18,6 +18,8 @@ const (
 	Minus
 	Star
 	Fslash
+	Lparen
+	Rparen
 )
 
 type Token struct {
@@ -85,6 +87,12 @@ func tokenise(data []byte) []Token {
 		} else if string(src.peek()) == "/" {
 			src.consume()
 			tokens = append(tokens, Token{token_type: Fslash})
+		} else if string(src.peek()) == "(" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Lparen})
+		} else if string(src.peek()) == ")" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Rparen})
 		} else {
 			panic(fmt.Sprintf("No idea what this is yet at position %d (%c)", src.sp, src.src[src.sp]))
 		}

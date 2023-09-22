@@ -62,6 +62,14 @@ func (t *Tokens) parse_term() *Node {
 		return &Node{node_type: NodeIntLiteral, value: t.consume().value}
 	case Identifier:
 		return &Node{node_type: NodeIdentifier, value: t.consume().value}
+	case Lparen:
+		t.consume()
+		expr := t.parse_expr(0)
+		if t.peek() != nil && t.peek().token_type != Rparen {
+			panic("Expected ')'")
+		}
+		t.consume()
+		return expr
 	default:
 		return nil
 	}
@@ -140,9 +148,6 @@ func (t *Tokens) parse() *StatementSequence {
 			if rhs == nil {
 				panic("Expected expression")
 			}
-			fmt.Println(rhs)
-			fmt.Println(rhs.lhs)
-			fmt.Println(rhs.rhs)
 			stmts.append(&Node{node_type: NodeLet, lhs: &lhs, rhs: rhs})
 
 		default:
