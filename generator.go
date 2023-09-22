@@ -62,6 +62,7 @@ func (g *Generator) gen_term(node *Node) {
 	} else if node.node_type == NodeDiv {
 		g.gen_term(node.rhs)
 		g.gen_term(node.lhs)
+		g.output += "    mov rdx, 0\n"
 		g.output += g.pop("rax")
 		g.output += g.pop("rbx")
 		g.output += "    div rbx\n"
