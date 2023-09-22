@@ -1,13 +1,20 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 )
 
 func main() {
-	data, err := os.ReadFile("test.bl")
+	flag.Parse()
+	source := flag.Args()
+	if len(source) == 0 {
+		fmt.Println(flag.ErrHelp)
+		os.Exit(1)
+	}
+	data, err := os.ReadFile(source[0])
 	if err != nil {
 		panic(err)
 	}
