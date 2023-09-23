@@ -40,7 +40,11 @@ const (
 	NodeDiv
 	NodeScope
 	NodeIf
-	NodePrintln
+	NodeLt
+	NodeGt
+	NodeEq
+	NodeAssign
+	NodeFor
 )
 
 type StatementSequence struct {
@@ -93,6 +97,30 @@ func get_operator_prec(op TokenType) *int {
 		return nil
 	}
 	return &prec
+}
+
+func (t *Tokens) parse_test() *Node {
+	test := t.parse_expr(0)
+
+	tok := t.peek()
+	if tok != nil {
+		switch tok.token_type {
+		case Gt:
+			t.consume()
+			node := Node{node_type: NodeGt, lhs: test, rhs: t.parse_expr(0)}
+			test = &node
+		case Lt:
+			t.consume()
+			node := Node{node_type: NodeLt, lhs: test, rhs: t.parse_expr(0)}
+			test = &node
+		case Eq:
+			t.consume()
+			node := Node{node_type: NodeEq, lhs: test, rhs: t.parse_expr(0)}
+			test = &node
+		}
+	}
+
+	return test
 }
 
 func (t *Tokens) parse_expr(min_prec int) *Node {
@@ -167,13 +195,24 @@ func (t *Tokens) parse_stmt() (*Node, error) {
 
 	case If:
 		t.consume()
-		lhs := t.parse_expr(0)
+		lhs := t.parse_test()
 		stmts := t.parse_scope()
 		return &Node{node_type: NodeIf, lhs: lhs, stmts: stmts}, nil
-	case Println:
+
+	case Identifier:
+		lhs := Node{node_type: NodeIdentifier, value: t.consume().value}
+		if t.peek() != nil && t.peek().token_type != Assign {
+			panic("Expected an assignment; got " + fmt.Sprint(t.peek().token_type))
+		}
 		t.consume()
-		lhs := t.parse_expr(0)
-		return &Node{node_type: NodePrintln, lhs: lhs}, nil
+		return &Node{node_type: NodeAssign, lhs: &lhs, rhs: t.parse_expr(0)}, nil
+
+	case For:
+		t.consume()
+		lhs := t.parse_test()
+		stmts := t.parse_scope()
+		return &Node{node_type: NodeFor, lhs: lhs, stmts: stmts}, nil
+
 	default:
 		return nil, errors.New("Unknown statement, " + fmt.Sprint(t.peek().token_type))
 	}

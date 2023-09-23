@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type Variable struct {
@@ -76,6 +77,46 @@ func (g *Generator) gen_term(node *Node) {
 	}
 }
 
+func (g *Generator) gen_test(node *Node) string {
+	g.gen_term(node.lhs)
+	g.gen_term(node.rhs)
+	g.output += g.pop("rax")
+	g.output += g.pop("rbx")
+	g.output += "    cmp rbx, rax\n"
+	switch node.node_type {
+	case NodeLt:
+		return "jl"
+	case NodeGt:
+		return "jg"
+	case NodeEq:
+		return "je"
+	}
+	return "je"
+}
+
+func (g *Generator) gen_inverse_test(node *Node) string {
+	g.gen_term(node.lhs)
+	g.gen_term(node.rhs)
+	g.output += g.pop("rax")
+	g.output += g.pop("rbx")
+	g.output += "    cmp rbx, rax\n"
+	switch node.node_type {
+	case NodeLt:
+		return "jg"
+	case NodeGt:
+		return "jl"
+	case NodeEq:
+		return "jne"
+	}
+	return "jne"
+}
+
+func (g *Generator) create_label() string {
+	label := "label" + strconv.Itoa(g.label_count)
+	g.label_count++
+	return label
+}
+
 func (g *Generator) gen_expr(node *Node) {
 	switch node.node_type {
 	case NodeExit:
@@ -94,18 +135,33 @@ func (g *Generator) gen_expr(node *Node) {
 		g.gen_scope(node)
 	case NodeIf:
 		g.output += "    ;if\n"
-		g.gen_term(node.lhs)
-		g.output += g.pop("rax")
-		g.output += "    test rax, rax\n"
-
-		label := "label" + fmt.Sprint(g.label_count)
-		g.label_count++
-
-		g.output += "    jz " + label + "\n"
+		test := g.gen_inverse_test(node.lhs)
+		label := g.create_label()
+		g.output += "    " + test + " " + label + "\n"
 		g.gen_scope(node)
 		g.output += "    ;endif\n" + label + ":\n"
-	case NodePrintln:
+	case NodeAssign:
+		g.output += "    ; assignment\n"
+		variable := g.find_var(node.lhs.value)
+		if variable == nil {
+			panic("Attempted assignment to undeclared variable")
+		}
+		g.gen_term(node.rhs)
+		g.output += g.pop("rax")
+		g.output += "    mov qword [rsp + " + fmt.Sprint((g.stack_size-variable.loc)*8) + "], rax\n"
 
+	case NodeFor:
+		g.output += "    ;for\n"
+		label_start := g.create_label()
+		label_end := g.create_label()
+		// test if we should enter loop
+		test := g.gen_inverse_test(node.lhs)
+		g.output += "    " + test + " " + label_end + "\n"
+		g.output += label_start + ":\n"
+		g.gen_scope(node)
+		test = g.gen_test(node.lhs)
+		g.output += "    " + test + " " + label_start + "\n"
+		g.output += "    ; endfor\n" + label_end + ":\n"
 	default:
 		panic("Can't generate expression")
 	}
@@ -130,7 +186,9 @@ func (g *Generator) end_scope() {
 	g.output += "    ; scope ends\n"
 	g.output += "    add rsp, " + fmt.Sprint(pop_count*8) + "\n"
 	g.stack_size -= pop_count
-	g.vars = g.vars[:len(g.vars)-pop_count]
+	if len(g.vars) > 0 {
+		g.vars = g.vars[:len(g.vars)-pop_count]
+	}
 	g.scopes = g.scopes[:len(g.scopes)-1]
 }
 

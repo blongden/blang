@@ -23,8 +23,10 @@ const (
 	Lcurly
 	Rcurly
 	Eq
+	Lt
+	Gt
 	If
-	Println
+	For
 )
 
 type Token struct {
@@ -68,8 +70,8 @@ func tokenise(data []byte) Tokens {
 				tokens = append(tokens, Token{token_type: Let})
 			case "if":
 				tokens = append(tokens, Token{token_type: If})
-			case "println":
-				tokens = append(tokens, Token{token_type: Println})
+			case "for":
+				tokens = append(tokens, Token{token_type: For})
 			default:
 				tokens = append(tokens, Token{token_type: Identifier, value: buf})
 			}
@@ -113,6 +115,12 @@ func tokenise(data []byte) Tokens {
 		} else if string(src.peek()) == "}" {
 			src.consume()
 			tokens = append(tokens, Token{token_type: Rcurly})
+		} else if string(src.peek()) == "<" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Lt})
+		} else if string(src.peek()) == ">" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Gt})
 		} else {
 			panic(fmt.Sprintf("No idea what this is yet at position %d (%c)", src.sp, src.src[src.sp]))
 		}

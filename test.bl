@@ -1,10 +1,14 @@
-let i = 69
-let x = 5 + 100 / 2 - 2 
-let y = x + 100
-let z = x + y
-if 1 {
-    let code = 10
-    if 1 {
-        exit code
-    }
+let x = 0
+let y = 1
+let digit = 12
+let code = 0
+
+for digit > 1 {
+    code = x+y
+    x = y
+    y = code
+     
+    digit = digit-1
 }
+
+exit code
