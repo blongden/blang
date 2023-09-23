@@ -18,9 +18,14 @@ program
   : statement+
   ;
 
+scope
+  : '{' statement+ '}'
+
 statement
-  : exit [expr]
-  | let identifier '=' expr
+  : 'exit' [expr]
+  | 'let' identifier '=' expr
+  | scope
+  | 'if' expr scope
   ;
 
 paren_expr

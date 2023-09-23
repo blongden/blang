@@ -10,10 +10,14 @@ type Variable struct {
 	loc  int
 }
 
+type Stack []int
+
 type Generator struct {
-	vars       []Variable
-	stack_size int
-	output     string
+	vars        []Variable
+	stack_size  int
+	scopes      Stack
+	output      string
+	label_count int
 }
 
 func (g *Generator) find_var(s string) *Variable {
@@ -34,7 +38,7 @@ func (g *Generator) gen_term(node *Node) {
 	} else if node.node_type == NodeIdentifier {
 		variable := g.find_var(node.value)
 		if variable == nil {
-			panic("No such variable, '" + node.lhs.value + "'")
+			panic("No such variable, '" + node.value + "'")
 		}
 		// found variable, get location
 		g.output += g.push("qword [rsp + "+fmt.Sprint((g.stack_size-variable.loc)*8)+"]", "push "+variable.name+" on stack")
@@ -86,9 +90,47 @@ func (g *Generator) gen_expr(node *Node) {
 		}
 		g.gen_term(node.rhs) // store value on stack
 		g.vars = append(g.vars, Variable{name: node.lhs.value, loc: g.stack_size})
+	case NodeScope:
+		g.gen_scope(node)
+	case NodeIf:
+		g.output += "    ;if\n"
+		g.gen_term(node.lhs)
+		g.output += g.pop("rax")
+		g.output += "    test rax, rax\n"
+
+		label := "label" + fmt.Sprint(g.label_count)
+		g.label_count++
+
+		g.output += "    jz " + label + "\n"
+		g.gen_scope(node)
+		g.output += "    ;endif\n" + label + ":\n"
+
 	default:
-		panic("Can't parse expression")
+		panic("Can't generate expression")
 	}
+}
+
+func (g *Generator) gen_scope(node *Node) {
+	g.begin_scope()
+	for i := 0; i < len(node.stmts.statements); i++ {
+		g.gen_expr(&node.stmts.statements[i])
+	}
+	g.end_scope()
+}
+
+func (g *Generator) begin_scope() {
+	g.output += "    ; scope begins\n"
+	g.scopes = append(g.scopes, g.stack_size)
+}
+
+func (g *Generator) end_scope() {
+	target_size := g.scopes[len(g.scopes)-1]
+	pop_count := len(g.vars) - target_size
+	g.output += "    ; scope ends\n"
+	g.output += "    add rsp, " + fmt.Sprint(pop_count*8) + "\n"
+	g.stack_size -= pop_count
+	g.vars = g.vars[:len(g.vars)-pop_count]
+	g.scopes = g.scopes[:len(g.scopes)-1]
 }
 
 func (g *Generator) push(reg string, comment string) string {

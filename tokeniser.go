@@ -12,7 +12,7 @@ const (
 	Exit
 	Int
 	Let
-	Eq
+	Assign
 	Identifier
 	Plus
 	Minus
@@ -20,6 +20,11 @@ const (
 	Fslash
 	Lparen
 	Rparen
+	Lcurly
+	Rcurly
+	Eq
+	If
+	Println
 )
 
 type Token struct {
@@ -61,6 +66,10 @@ func tokenise(data []byte) []Token {
 				tokens = append(tokens, Token{token_type: Exit})
 			case "let":
 				tokens = append(tokens, Token{token_type: Let})
+			case "if":
+				tokens = append(tokens, Token{token_type: If})
+			case "println":
+				tokens = append(tokens, Token{token_type: Println})
 			default:
 				tokens = append(tokens, Token{token_type: Identifier, value: buf})
 			}
@@ -74,7 +83,12 @@ func tokenise(data []byte) []Token {
 			src.consume()
 		} else if string(src.peek()) == "=" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Eq})
+			if string(src.peek()) == "=" {
+				src.consume()
+				tokens = append(tokens, Token{token_type: Eq})
+			} else {
+				tokens = append(tokens, Token{token_type: Assign})
+			}
 		} else if string(src.peek()) == "+" {
 			src.consume()
 			tokens = append(tokens, Token{token_type: Plus})
@@ -93,6 +107,12 @@ func tokenise(data []byte) []Token {
 		} else if string(src.peek()) == ")" {
 			src.consume()
 			tokens = append(tokens, Token{token_type: Rparen})
+		} else if string(src.peek()) == "{" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Lcurly})
+		} else if string(src.peek()) == "}" {
+			src.consume()
+			tokens = append(tokens, Token{token_type: Rcurly})
 		} else {
 			panic(fmt.Sprintf("No idea what this is yet at position %d (%c)", src.sp, src.src[src.sp]))
 		}

@@ -1,2 +1,10 @@
+let i = 69
 let x = 5 + 100 / 2 - 2 * (3 + 3)  
-exit x
+let y = x + 100
+let z = x + y
+if 1 {
+    let code = 10
+    if 1 {
+        exit code
+    }
+}

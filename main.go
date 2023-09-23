@@ -21,6 +21,11 @@ func main() {
 
 	tokens := Tokens{tokens: tokenise(data)}
 	ast := tokens.parse()
+
+	if ast == nil {
+		panic("SYNTAX ERROR")
+	}
+
 	generate(ast)
 
 	cmd := exec.Command("nasm", "-f", "macho64", "test.a", "-o", "test.o")

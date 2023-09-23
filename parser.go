@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Tokens struct {
 	tokens []Token
@@ -35,17 +38,21 @@ const (
 	NodeSub
 	NodeMulti
 	NodeDiv
+	NodeScope
+	NodeIf
+	NodePrintln
 )
+
+type StatementSequence struct {
+	statements []Node
+}
 
 type Node struct {
 	node_type NodeType
 	value     string
 	lhs       *Node
 	rhs       *Node
-}
-
-type StatementSequence struct {
-	statements []Node
+	stmts     *StatementSequence
 }
 
 func (s *StatementSequence) append(node *Node) {
@@ -124,37 +131,88 @@ func (t *Tokens) parse_expr(min_prec int) *Node {
 	return expr
 }
 
+func (t *Tokens) parse_stmt() (*Node, error) {
+	if t.peek() == nil {
+		return nil, errors.New("no more tokens left")
+	}
+
+	switch t.peek().token_type {
+	case Exit:
+		t.consume()
+		var lhs *Node
+		if lhs = t.parse_expr(0); lhs == nil {
+			lhs = &Node{node_type: NodeIntLiteral, value: "0"}
+		}
+		return &Node{node_type: NodeExit, lhs: lhs}, nil
+
+	case Let:
+		t.consume() // let
+		if t.peek() != nil && t.peek().token_type != Identifier {
+			panic("Expected identifier")
+		}
+		lhs := Node{node_type: NodeIdentifier, value: t.consume().value} // x
+		if t.peek() != nil && t.peek().token_type != Assign {
+			panic("Expected '='")
+		}
+		t.consume()            // =
+		rhs := t.parse_expr(0) // 69
+		if rhs == nil {
+			panic("Expected expression")
+		}
+		return &Node{node_type: NodeLet, lhs: &lhs, rhs: rhs}, nil
+
+	case Lcurly:
+		stmts := t.parse_scope()
+		return &Node{node_type: NodeScope, stmts: stmts}, nil
+
+	case If:
+		t.consume()
+		lhs := t.parse_expr(0)
+		stmts := t.parse_scope()
+		return &Node{node_type: NodeIf, lhs: lhs, stmts: stmts}, nil
+	case Println:
+		t.consume()
+		lhs := t.parse_expr(0)
+		return &Node{node_type: NodePrintln, lhs: lhs}, nil
+	default:
+		return nil, errors.New("Unknown statement, " + fmt.Sprint(t.peek().token_type))
+	}
+}
+
+func (t *Tokens) parse_scope() *StatementSequence {
+	if t.peek() == nil || t.peek().token_type != Lcurly {
+		panic("Expected '{'")
+	}
+
+	t.consume()
+	stmts := StatementSequence{}
+	for {
+		stmt, _ := t.parse_stmt()
+		if stmt == nil {
+			break
+		}
+		stmts.append(stmt)
+	}
+	if t.peek() == nil || t.peek().token_type != Rcurly {
+		panic("Expected '}'")
+	}
+	t.consume()
+
+	return &stmts
+}
+
 func (t *Tokens) parse() *StatementSequence {
 	stmts := StatementSequence{}
-	for t.peek() != nil {
-		switch t.peek().token_type {
-		case Exit:
-			t.consume()
-			var lhs *Node
-			if lhs = t.parse_expr(0); lhs == nil {
-				lhs = &Node{node_type: NodeIntLiteral, value: "0"}
-			}
-			stmts.append(&Node{node_type: NodeExit, lhs: lhs})
 
-		case Let:
-			t.consume() // let
-			if t.peek() != nil && t.peek().token_type != Identifier {
-				panic("Expected identifier")
-			}
-			lhs := Node{node_type: NodeIdentifier, value: t.consume().value} // x
-			if t.peek() != nil && t.peek().token_type != Eq {
-				panic("Expected '='")
-			}
-			t.consume()            // =
-			rhs := t.parse_expr(0) // 69
-			if rhs == nil {
-				panic("Expected expression")
-			}
-			stmts.append(&Node{node_type: NodeLet, lhs: &lhs, rhs: rhs})
-
-		default:
-			panic("Can't parse token " + fmt.Sprint(t.peek().token_type) + " " + t.peek().value)
+	for {
+		if t.peek() == nil {
+			break
 		}
+		stmt, err := t.parse_stmt()
+		if stmt == nil {
+			panic("Unable to parse statement: " + err.Error())
+		}
+		stmts.append(stmt)
 	}
 
 	return &stmts
