@@ -104,6 +104,7 @@ func (g *Generator) gen_expr(node *Node) {
 		g.output += "    jz " + label + "\n"
 		g.gen_scope(node)
 		g.output += "    ;endif\n" + label + ":\n"
+	case NodePrintln:
 
 	default:
 		panic("Can't generate expression")

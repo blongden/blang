@@ -19,7 +19,7 @@ func main() {
 		panic(err)
 	}
 
-	tokens := Tokens{tokens: tokenise(data)}
+	tokens := tokenise(data)
 	ast := tokens.parse()
 
 	if ast == nil {

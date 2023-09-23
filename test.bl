@@ -1,5 +1,5 @@
 let i = 69
-let x = 5 + 100 / 2 - 2 * (3 + 3)  
+let x = 5 + 100 / 2 - 2 
 let y = x + 100
 let z = x + y
 if 1 {

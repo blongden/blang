@@ -50,7 +50,7 @@ func (s *Source) consume() byte {
 	return b
 }
 
-func tokenise(data []byte) []Token {
+func tokenise(data []byte) Tokens {
 	tokens := []Token{}
 
 	src := Source{src: data}
@@ -119,5 +119,5 @@ func tokenise(data []byte) []Token {
 		buf = ""
 	}
 
-	return tokens
+	return Tokens{tokens: tokens}
 }
