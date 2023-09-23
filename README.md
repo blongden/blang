@@ -20,16 +20,6 @@ program
 
 scope
   : '{' statement+ '}'
-
-statement
-  : 'exit' [expr]
-  | 'let' identifier '=' expr
-  | scope
-  | 'if' expr scope
-  ;
-
-paren_expr
-  : '(' expr ')'
   ;
 
 term
@@ -38,11 +28,29 @@ term
   | paren_expr
   ;
 
+test
+  : term '<' term
+  | term '==' term
+  | term '>' term
+  ;
+
 expr
   : term '+' term
   | term '-' term
   | term '*' term
   | term '/' term
+  ;
+
+paren_expr
+  : '(' expr ')'
+  ;
+
+statement
+  : 'exit' [expr]
+  | 'let' identifier '=' expr
+  | scope
+  | 'if' test scope
+  | 'for' test scope
   ;
 
 ```
