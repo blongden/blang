@@ -19,9 +19,8 @@ func main() {
 		panic(err)
 	}
 
-	tokens := tokenise(data)
-	ast := tokens.parse()
-
+	parser := Parser{tokens: tokenise(data)}
+	ast := parser.parse()
 	generate(ast)
 
 	cmd := exec.Command("nasm", "-f", "macho64", "test.a", "-o", "test.o")

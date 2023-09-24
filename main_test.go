@@ -6,7 +6,7 @@ import (
 )
 
 func TestExitStatementDefaultsToZero(t *testing.T) {
-	tokens := tokenise([]byte("exit"))
+	tokens := Parser{tokens: tokenise([]byte("exit"))}
 	if tokens.peek().token_type != Exit {
 		t.Errorf("exit does not generate exit token")
 	}
@@ -23,7 +23,7 @@ func TestExitStatementDefaultsToZero(t *testing.T) {
 }
 
 func TestExitStatementUsesArgument(t *testing.T) {
-	tokens := tokenise([]byte("exit 1"))
+	tokens := Parser{tokens: tokenise([]byte("exit 1"))}
 	if tokens.peek().token_type != Exit {
 		t.Errorf("exit does not generate exit token")
 	}
@@ -72,7 +72,7 @@ var exprTests = []exprTest{
 
 func TestExprPrecedenceClimbingMulti(t *testing.T) {
 	for _, test := range exprTests {
-		tokens := tokenise([]byte(test.expr))
+		tokens := Parser{tokens: tokenise([]byte(test.expr))}
 		root := tokens.parse_expr(0)
 		result := evaluateExpr(root)
 		if result != test.expected {
@@ -82,7 +82,7 @@ func TestExprPrecedenceClimbingMulti(t *testing.T) {
 }
 
 func TestLetAssignsVar(t *testing.T) {
-	tokens := tokenise([]byte("let x = 5"))
+	tokens := Parser{tokens: tokenise([]byte("let x = 5"))}
 	if tokens.peek().token_type != Let {
 		t.Errorf("exit does not generate exit token")
 	}

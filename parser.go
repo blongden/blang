@@ -5,19 +5,19 @@ import (
 	"fmt"
 )
 
-type Tokens struct {
+type Parser struct {
 	tokens []Token
 	index  int
 }
 
-func (t *Tokens) peek() *Token {
+func (t *Parser) peek() *Token {
 	if t.index >= len(t.tokens) {
 		return nil
 	}
 	return &t.tokens[t.index]
 }
 
-func (t *Tokens) consume() *Token {
+func (t *Parser) consume() *Token {
 	if t.index >= len(t.tokens) {
 		return nil
 	}
@@ -63,7 +63,7 @@ func (s *StatementSequence) append(node *Node) {
 	s.statements = append(s.statements, *node)
 }
 
-func (t *Tokens) parse_term() *Node {
+func (t *Parser) parse_term() *Node {
 	if t.peek() == nil {
 		return nil
 	}
@@ -99,7 +99,7 @@ func get_operator_prec(op TokenType) *int {
 	return &prec
 }
 
-func (t *Tokens) parse_test() *Node {
+func (t *Parser) parse_test() *Node {
 	test := t.parse_expr(0)
 
 	tok := t.peek()
@@ -123,7 +123,7 @@ func (t *Tokens) parse_test() *Node {
 	return test
 }
 
-func (t *Tokens) parse_expr(min_prec int) *Node {
+func (t *Parser) parse_expr(min_prec int) *Node {
 	expr := t.parse_term()
 
 	// Future me: read this for an explaination on how this works https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
@@ -159,7 +159,7 @@ func (t *Tokens) parse_expr(min_prec int) *Node {
 	return expr
 }
 
-func (t *Tokens) parse_stmt() (*Node, error) {
+func (t *Parser) parse_stmt() (*Node, error) {
 	if t.peek() == nil {
 		return nil, errors.New("no more tokens left")
 	}
@@ -218,7 +218,7 @@ func (t *Tokens) parse_stmt() (*Node, error) {
 	}
 }
 
-func (t *Tokens) parse_scope() *StatementSequence {
+func (t *Parser) parse_scope() *StatementSequence {
 	if t.peek() == nil || t.peek().token_type != Lcurly {
 		panic("Expected '{'")
 	}
@@ -240,7 +240,7 @@ func (t *Tokens) parse_scope() *StatementSequence {
 	return &stmts
 }
 
-func (t *Tokens) parse() *StatementSequence {
+func (t *Parser) parse() *StatementSequence {
 	stmts := StatementSequence{}
 
 	for {

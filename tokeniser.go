@@ -32,11 +32,16 @@ const (
 type Token struct {
 	token_type TokenType
 	value      string
+	line       int
+	col        int
 }
 
 type Source struct {
-	src []byte
-	sp  int
+	src    []byte
+	tokens []Token
+	sp     int
+	line   int
+	col    int
 }
 
 func (s *Source) peek() byte {
@@ -49,12 +54,17 @@ func (s *Source) peek() byte {
 func (s *Source) consume() byte {
 	b := s.src[s.sp]
 	s.sp++
+	s.col++
 	return b
 }
 
-func tokenise(data []byte) Tokens {
-	tokens := []Token{}
+func (s *Source) append(token Token) {
+	token.col = s.col
+	token.line = s.line
+	s.tokens = append(s.tokens, token)
+}
 
+func tokenise(data []byte) []Token {
 	src := Source{src: data}
 
 	buf := ""
@@ -65,67 +75,71 @@ func tokenise(data []byte) Tokens {
 			}
 			switch buf {
 			case "exit":
-				tokens = append(tokens, Token{token_type: Exit})
+				src.append(Token{token_type: Exit})
 			case "let":
-				tokens = append(tokens, Token{token_type: Let})
+				src.append(Token{token_type: Let})
 			case "if":
-				tokens = append(tokens, Token{token_type: If})
+				src.append(Token{token_type: If})
 			case "for":
-				tokens = append(tokens, Token{token_type: For})
+				src.append(Token{token_type: For})
 			default:
-				tokens = append(tokens, Token{token_type: Identifier, value: buf})
+				src.append(Token{token_type: Identifier, value: buf})
 			}
 		} else if unicode.IsDigit(rune(src.peek())) {
 			for unicode.IsDigit(rune(src.peek())) {
 				buf += string(src.consume())
 			}
 
-			tokens = append(tokens, Token{token_type: Int, value: buf})
+			src.append(Token{token_type: Int, value: buf})
 		} else if unicode.IsSpace(rune(src.peek())) {
+			if src.peek() == 20 {
+				src.line++
+				src.col = 0
+			}
 			src.consume()
 		} else if string(src.peek()) == "=" {
 			src.consume()
 			if string(src.peek()) == "=" {
 				src.consume()
-				tokens = append(tokens, Token{token_type: Eq})
+				src.append(Token{token_type: Eq})
 			} else {
-				tokens = append(tokens, Token{token_type: Assign})
+				src.append(Token{token_type: Assign})
 			}
 		} else if string(src.peek()) == "+" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Plus})
+			src.append(Token{token_type: Plus})
 		} else if string(src.peek()) == "-" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Minus})
+			src.append(Token{token_type: Minus})
 		} else if string(src.peek()) == "*" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Star})
+			src.append(Token{token_type: Star})
 		} else if string(src.peek()) == "/" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Fslash})
+			src.append(Token{token_type: Fslash})
 		} else if string(src.peek()) == "(" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Lparen})
+			src.append(Token{token_type: Lparen})
 		} else if string(src.peek()) == ")" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Rparen})
+			src.append(Token{token_type: Rparen})
 		} else if string(src.peek()) == "{" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Lcurly})
+			src.append(Token{token_type: Lcurly})
 		} else if string(src.peek()) == "}" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Rcurly})
+			src.append(Token{token_type: Rcurly})
 		} else if string(src.peek()) == "<" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Lt})
+			src.append(Token{token_type: Lt})
 		} else if string(src.peek()) == ">" {
 			src.consume()
-			tokens = append(tokens, Token{token_type: Gt})
+			src.append(Token{token_type: Gt})
 		} else {
 			panic(fmt.Sprintf("No idea what this is yet at position %d (%c)", src.sp, src.src[src.sp]))
 		}
 		buf = ""
 	}
 
-	return Tokens{tokens: tokens}
+	return src.tokens
 }
