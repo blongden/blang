@@ -94,6 +94,15 @@ func TestExprInvalid(t *testing.T) {
 	}
 }
 
+func TestExprParenInvalid(t *testing.T) {
+	tokens, _ := tokeniser.Tokenise([]byte("let x = 2 + (2"))
+	parser := Parser{tokens: tokens}
+	_, err := parser.parse_stmt()
+	if err == nil {
+		t.Errorf("expected invalid expression error")
+	}
+}
+
 func TestLetAssignsVar(t *testing.T) {
 	tokens, _ := tokeniser.Tokenise([]byte("let x = 5"))
 	parser := Parser{tokens: tokens}
