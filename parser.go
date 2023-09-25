@@ -69,26 +69,35 @@ func (s *StatementSequence) append(node *Node) {
 	s.statements = append(s.statements, *node)
 }
 
-func (t *Parser) parse_term() *Node {
-	if t.peek() == nil {
-		return nil
+func (t *Parser) parse_term() (*Node, error) {
+	tok := t.peek()
+	if tok == nil {
+		return nil, nil
 	}
 
-	switch t.peek().Type {
+	switch tok.Type {
 	case tokeniser.Int:
-		return &Node{node_type: NodeIntLiteral, value: t.consume().Value}
+		return &Node{node_type: NodeIntLiteral, value: t.consume().Value}, nil
 	case tokeniser.Identifier:
-		return &Node{node_type: NodeIdentifier, value: t.consume().Value}
+		return &Node{node_type: NodeIdentifier, value: t.consume().Value}, nil
 	case tokeniser.Lparen:
 		t.consume()
-		expr := t.parse_expr(0)
-		if t.peek() != nil && t.peek().Type != tokeniser.Rparen {
-			panic("Expected ')'")
+		expr, err := t.parse_expr(0)
+		if err != nil {
+			return nil, err
+		}
+
+		if t.peek() == nil {
+			return nil, fmt.Errorf("unexpected EOF")
+		}
+
+		if t.peek().Type != tokeniser.Rparen {
+			return nil, parse_error("expected ')'", t.peek())
 		}
 		t.consume()
-		return expr
+		return expr, nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
@@ -105,23 +114,39 @@ func get_operator_prec(op tokeniser.TokenType) *int {
 	return &prec
 }
 
-func (t *Parser) parse_test() *Node {
-	test := t.parse_expr(0)
+func (t *Parser) parse_test() (*Node, error) {
+	test, err := t.parse_expr(0)
+
+	if err != nil {
+		return nil, err
+	}
 
 	tok := t.peek()
 	if tok != nil {
 		switch tok.Type {
 		case tokeniser.Gt:
 			t.consume()
-			node := Node{node_type: NodeGt, lhs: test, rhs: t.parse_expr(0)}
+			rhs, err := t.parse_expr(0)
+			if err != nil {
+				return nil, err
+			}
+			node := Node{node_type: NodeGt, lhs: test, rhs: rhs}
 			test = &node
 		case tokeniser.Lt:
 			t.consume()
-			node := Node{node_type: NodeLt, lhs: test, rhs: t.parse_expr(0)}
+			rhs, err := t.parse_expr(0)
+			if err != nil {
+				return nil, err
+			}
+			node := Node{node_type: NodeLt, lhs: test, rhs: rhs}
 			test = &node
 		case tokeniser.Eq:
 			t.consume()
-			node := Node{node_type: NodeEq, lhs: test, rhs: t.parse_expr(0)}
+			rhs, err := t.parse_expr(0)
+			if err != nil {
+				return nil, err
+			}
+			node := Node{node_type: NodeEq, lhs: test, rhs: rhs}
 			test = &node
 		default:
 			node := Node{node_type: NodeGt, lhs: test, rhs: &Node{node_type: NodeIntLiteral, value: "0"}}
@@ -129,11 +154,15 @@ func (t *Parser) parse_test() *Node {
 		}
 	}
 
-	return test
+	return test, nil
 }
 
-func (t *Parser) parse_expr(min_prec int) *Node {
-	expr := t.parse_term()
+func (t *Parser) parse_expr(min_prec int) (*Node, error) {
+	expr, err := t.parse_term()
+
+	if err != nil {
+		return nil, err
+	}
 
 	// Future me: read this for an explaination on how this works https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
 	for {
@@ -147,9 +176,13 @@ func (t *Parser) parse_expr(min_prec int) *Node {
 			break
 		}
 		op := t.consume()
-		rhs := t.parse_expr(min_prec + 1)
+		rhs, err := t.parse_expr(min_prec + 1)
+		if err != nil {
+			return nil, err
+		}
+
 		if rhs == nil {
-			panic("unable to parse expression")
+			return nil, parse_error("invalid expression", op)
 		}
 		expr2 := Node{lhs: expr, rhs: rhs}
 		if op.Type == tokeniser.Plus {
@@ -165,7 +198,7 @@ func (t *Parser) parse_expr(min_prec int) *Node {
 		}
 		expr = &expr2
 	}
-	return expr
+	return expr, nil
 }
 
 func (t *Parser) parse_stmt() (*Node, error) {
@@ -177,7 +210,8 @@ func (t *Parser) parse_stmt() (*Node, error) {
 	case tokeniser.Exit:
 		t.consume()
 		var lhs *Node
-		if lhs = t.parse_expr(0); lhs == nil {
+		lhs, _ = t.parse_expr(0)
+		if lhs == nil {
 			lhs = &Node{node_type: NodeIntLiteral, value: "0"}
 		}
 		return &Node{node_type: NodeExit, lhs: lhs}, nil
@@ -194,10 +228,10 @@ func (t *Parser) parse_stmt() (*Node, error) {
 			return nil, parse_error("expected '='", c)
 		}
 
-		c = t.consume()        // =
-		rhs := t.parse_expr(0) // 69
-		if rhs == nil {
-			return nil, parse_error("expected expression", c)
+		t.consume()                 // =
+		rhs, err := t.parse_expr(0) // 69
+		if err != nil {
+			return nil, err
 		}
 
 		return &Node{node_type: NodeLet, lhs: &lhs, rhs: rhs}, nil
@@ -209,11 +243,10 @@ func (t *Parser) parse_stmt() (*Node, error) {
 	case tokeniser.If:
 		t.consume()
 
-		c := t.peek() // for error reporting
-		lhs := t.parse_test()
+		lhs, err := t.parse_test()
 
-		if lhs == nil {
-			return nil, parse_error("expected test", c)
+		if err != nil {
+			return nil, err
 		}
 
 		stmts, err := t.parse_scope()
@@ -223,16 +256,28 @@ func (t *Parser) parse_stmt() (*Node, error) {
 		return &Node{node_type: NodeIf, lhs: lhs, stmts: stmts}, nil
 
 	case tokeniser.Identifier:
-		lhs := Node{node_type: NodeIdentifier, value: t.consume().Value}
-		if t.peek() != nil && t.peek().Type != tokeniser.Assign {
-			panic("Expected an assignment; got " + fmt.Sprint(t.peek().Type))
+		id := t.consume()
+		lhs := Node{node_type: NodeIdentifier, value: id.Value}
+		if t.peek() == nil {
+			return nil, parse_error("unexpected end of file", id)
+		}
+
+		if t.peek().Type != tokeniser.Assign {
+			return nil, parse_error(fmt.Sprintf("expected an assignment, got %d", t.peek().Type), t.peek())
 		}
 		t.consume()
-		return &Node{node_type: NodeAssign, lhs: &lhs, rhs: t.parse_expr(0)}, nil
+		rhs, err := t.parse_expr(0)
+		if err != nil {
+			return nil, err
+		}
+		return &Node{node_type: NodeAssign, lhs: &lhs, rhs: rhs}, nil
 
 	case tokeniser.For:
 		t.consume()
-		lhs := t.parse_test()
+		lhs, err := t.parse_test()
+		if err != nil {
+			return nil, err
+		}
 		stmts, _ := t.parse_scope()
 		return &Node{node_type: NodeFor, lhs: lhs, stmts: stmts}, nil
 

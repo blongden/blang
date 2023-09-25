@@ -20,8 +20,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	parser := Parser{tokens: tokeniser.Tokenise(data)}
+	tokens, err := tokeniser.Tokenise(data)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s", err)
+		os.Exit(1)
+	}
+	parser := Parser{tokens: tokens}
 	ast := parser.parse()
 	generate(ast)
 

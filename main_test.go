@@ -8,7 +8,8 @@ import (
 )
 
 func TestExitStatementDefaultsToZero(t *testing.T) {
-	parser := Parser{tokens: tokeniser.Tokenise([]byte("exit"))}
+	tokens, _ := tokeniser.Tokenise([]byte("exit"))
+	parser := Parser{tokens: tokens}
 	if parser.peek().Type != tokeniser.Exit {
 		t.Errorf("exit does not generate exit token")
 	}
@@ -24,12 +25,13 @@ func TestExitStatementDefaultsToZero(t *testing.T) {
 }
 
 func TestExitStatementUsesArgument(t *testing.T) {
-	tokens := Parser{tokens: tokeniser.Tokenise([]byte("exit 1"))}
-	if tokens.peek().Type != tokeniser.Exit {
+	tokens, _ := tokeniser.Tokenise([]byte("exit 1"))
+	parser := Parser{tokens: tokens}
+	if parser.peek().Type != tokeniser.Exit {
 		t.Errorf("exit does not generate exit token")
 	}
 
-	node, _ := tokens.parse_stmt()
+	node, _ := parser.parse_stmt()
 
 	if node.lhs == nil {
 		t.Errorf("exit node has no parameter")
@@ -73,8 +75,9 @@ var exprTests = []exprTest{
 
 func TestExprPrecedenceClimbingMulti(t *testing.T) {
 	for _, test := range exprTests {
-		parser := Parser{tokens: tokeniser.Tokenise([]byte(test.expr))}
-		root := parser.parse_expr(0)
+		tokens, _ := tokeniser.Tokenise([]byte(test.expr))
+		parser := Parser{tokens: tokens}
+		root, _ := parser.parse_expr(0)
 		result := evaluateExpr(root)
 		if result != test.expected {
 			t.Errorf("answer incorrect for expression (" + test.expr + "): " + strconv.Itoa(result))
@@ -82,9 +85,19 @@ func TestExprPrecedenceClimbingMulti(t *testing.T) {
 	}
 }
 
+func TestExprInvalid(t *testing.T) {
+	tokens, _ := tokeniser.Tokenise([]byte("let x = 2 +"))
+	parser := Parser{tokens: tokens}
+	_, err := parser.parse_stmt()
+	if err == nil {
+		t.Errorf("expected invalid expression error")
+	}
+}
+
 func TestLetAssignsVar(t *testing.T) {
-	tokens := Parser{tokens: tokeniser.Tokenise([]byte("let x = 5"))}
-	if tokens.peek().Type != tokeniser.Let {
+	tokens, _ := tokeniser.Tokenise([]byte("let x = 5"))
+	parser := Parser{tokens: tokens}
+	if parser.peek().Type != tokeniser.Let {
 		t.Errorf("exit does not generate exit token")
 	}
 

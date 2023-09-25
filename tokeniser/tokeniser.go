@@ -59,24 +59,16 @@ func (s *source) consume() byte {
 }
 
 func (s *source) append(token Token) {
-	if token.Col == 0 {
-		token.Col = s.col
-	}
-
-	if token.Line == 0 {
-		token.Line = s.line
-	}
-
 	s.tokens = append(s.tokens, token)
 }
 
-func Tokenise(data []byte) []Token {
+func Tokenise(data []byte) ([]Token, error) {
 	src := source{src: data, line: 1}
 
-	buf := ""
 	for src.peek() != 0 {
+		buf := ""
+		t := Token{Col: src.col, Line: src.line}
 		if unicode.IsLetter(rune(src.peek())) {
-			t := Token{Col: src.col, Line: src.line}
 			for unicode.IsLetter(rune(src.peek())) || unicode.IsNumber(rune(src.peek())) {
 				buf += string(src.consume())
 			}
@@ -93,62 +85,63 @@ func Tokenise(data []byte) []Token {
 				t.Type = Identifier
 				t.Value = buf
 			}
-			src.append(t)
 		} else if unicode.IsDigit(rune(src.peek())) {
 			for unicode.IsDigit(rune(src.peek())) {
 				buf += string(src.consume())
 			}
 
-			src.append(Token{Type: Int, Value: buf})
+			t.Type = Int
+			t.Value = buf
 		} else if unicode.IsSpace(rune(src.peek())) {
-			if src.peek() == 10 {
+			space := src.consume()
+			if space == 10 { // newline
 				src.line++
 				src.col = 0
 			}
-			src.consume()
+			continue
 		} else if string(src.peek()) == "=" {
 			src.consume()
 			if string(src.peek()) == "=" {
 				src.consume()
-				src.append(Token{Type: Eq})
+				t.Type = Eq
 			} else {
-				src.append(Token{Type: Assign})
+				t.Type = Assign
 			}
 		} else if string(src.peek()) == "+" {
 			src.consume()
-			src.append(Token{Type: Plus})
+			t.Type = Plus
 		} else if string(src.peek()) == "-" {
 			src.consume()
-			src.append(Token{Type: Minus})
+			t.Type = Minus
 		} else if string(src.peek()) == "*" {
 			src.consume()
-			src.append(Token{Type: Star})
+			t.Type = Star
 		} else if string(src.peek()) == "/" {
 			src.consume()
-			src.append(Token{Type: Fslash})
+			t.Type = Fslash
 		} else if string(src.peek()) == "(" {
 			src.consume()
-			src.append(Token{Type: Lparen})
+			t.Type = Lparen
 		} else if string(src.peek()) == ")" {
 			src.consume()
-			src.append(Token{Type: Rparen})
+			t.Type = Rparen
 		} else if string(src.peek()) == "{" {
 			src.consume()
-			src.append(Token{Type: Lcurly})
+			t.Type = Lcurly
 		} else if string(src.peek()) == "}" {
 			src.consume()
-			src.append(Token{Type: Rcurly})
+			t.Type = Rcurly
 		} else if string(src.peek()) == "<" {
 			src.consume()
-			src.append(Token{Type: Lt})
+			t.Type = Lt
 		} else if string(src.peek()) == ">" {
 			src.consume()
-			src.append(Token{Type: Gt})
+			t.Type = Gt
 		} else {
-			panic(fmt.Sprintf("No idea what this is yet at position %d (%c)", src.sp, src.src[src.sp]))
+			return nil, fmt.Errorf("no idea what this is yet at position %d (%c)", src.sp, src.src[src.sp])
 		}
-		buf = ""
+		src.append(t)
 	}
 
-	return src.tokens
+	return src.tokens, nil
 }
