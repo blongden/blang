@@ -37,5 +37,10 @@ func main() {
 	}
 
 	cmd = exec.Command("ld", "-macosx_version_min", "13.5.0", "-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib", "-lSystem", "-o", "test", "test.o")
+	cmd.Stderr = os.Stdout
+	if err := cmd.Run(); err != nil {
+		fmt.Println(cmd)
+		fmt.Println(err)
+	}
 	cmd.Run()
 }
