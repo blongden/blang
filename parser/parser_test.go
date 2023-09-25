@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"strconv"
@@ -9,51 +9,51 @@ import (
 
 func TestExitStatementDefaultsToZero(t *testing.T) {
 	tokens, _ := tokeniser.Tokenise([]byte("exit"))
-	parser := Parser{tokens: tokens}
-	if parser.peek().Type != tokeniser.Exit {
+	p := Parser{Tokens: tokens}
+	if p.peek().Type != tokeniser.Exit {
 		t.Errorf("exit does not generate exit token")
 	}
 
-	node, _ := parser.parse_stmt()
-	if node.lhs == nil {
+	node, _ := p.parse_stmt()
+	if node.Lhs == nil {
 		t.Errorf("exit node has no parameter")
 	}
 
-	if node.lhs.node_type != NodeIntLiteral || node.lhs.value != "0" {
+	if node.Lhs.Type != NodeIntLiteral || node.Lhs.Value != "0" {
 		t.Errorf("exit node parameter should default to 0")
 	}
 }
 
 func TestExitStatementUsesArgument(t *testing.T) {
 	tokens, _ := tokeniser.Tokenise([]byte("exit 1"))
-	parser := Parser{tokens: tokens}
+	parser := Parser{Tokens: tokens}
 	if parser.peek().Type != tokeniser.Exit {
 		t.Errorf("exit does not generate exit token")
 	}
 
 	node, _ := parser.parse_stmt()
 
-	if node.lhs == nil {
+	if node.Lhs == nil {
 		t.Errorf("exit node has no parameter")
 	}
 
-	if node.lhs.node_type != NodeIntLiteral || node.lhs.value != "1" {
+	if node.Lhs.Type != NodeIntLiteral || node.Lhs.Value != "1" {
 		t.Errorf("exit node parameter should be set to 1")
 	}
 }
 
 func evaluateExpr(node *Node) int {
-	if node.node_type == NodeIntLiteral {
-		i, _ := strconv.Atoi(node.value)
+	if node.Type == NodeIntLiteral {
+		i, _ := strconv.Atoi(node.Value)
 		return i
-	} else if node.node_type == NodeAdd {
-		return evaluateExpr(node.lhs) + evaluateExpr(node.rhs)
-	} else if node.node_type == NodeSub {
-		return evaluateExpr(node.lhs) - evaluateExpr(node.rhs)
-	} else if node.node_type == NodeMulti {
-		return evaluateExpr(node.lhs) * evaluateExpr(node.rhs)
-	} else if node.node_type == NodeDiv {
-		return evaluateExpr(node.lhs) / evaluateExpr(node.rhs)
+	} else if node.Type == NodeAdd {
+		return evaluateExpr(node.Lhs) + evaluateExpr(node.Rhs)
+	} else if node.Type == NodeSub {
+		return evaluateExpr(node.Lhs) - evaluateExpr(node.Rhs)
+	} else if node.Type == NodeMulti {
+		return evaluateExpr(node.Lhs) * evaluateExpr(node.Rhs)
+	} else if node.Type == NodeDiv {
+		return evaluateExpr(node.Lhs) / evaluateExpr(node.Rhs)
 	}
 	return 0
 }
@@ -76,7 +76,7 @@ var exprTests = []exprTest{
 func TestExprPrecedenceClimbingMulti(t *testing.T) {
 	for _, test := range exprTests {
 		tokens, _ := tokeniser.Tokenise([]byte(test.expr))
-		parser := Parser{tokens: tokens}
+		parser := Parser{Tokens: tokens}
 		root, _ := parser.parse_expr(0)
 		result := evaluateExpr(root)
 		if result != test.expected {
@@ -87,7 +87,7 @@ func TestExprPrecedenceClimbingMulti(t *testing.T) {
 
 func TestExprInvalid(t *testing.T) {
 	tokens, _ := tokeniser.Tokenise([]byte("let x = 2 +"))
-	parser := Parser{tokens: tokens}
+	parser := Parser{Tokens: tokens}
 	_, err := parser.parse_stmt()
 	if err == nil {
 		t.Errorf("expected invalid expression error")
@@ -96,19 +96,9 @@ func TestExprInvalid(t *testing.T) {
 
 func TestExprParenInvalid(t *testing.T) {
 	tokens, _ := tokeniser.Tokenise([]byte("let x = 2 + (2"))
-	parser := Parser{tokens: tokens}
-	_, err := parser.parse_stmt()
+	p := Parser{Tokens: tokens}
+	_, err := p.parse_stmt()
 	if err == nil {
 		t.Errorf("expected invalid expression error")
 	}
-}
-
-func TestLetAssignsVar(t *testing.T) {
-	tokens, _ := tokeniser.Tokenise([]byte("let x = 5"))
-	parser := Parser{tokens: tokens}
-	if parser.peek().Type != tokeniser.Let {
-		t.Errorf("exit does not generate exit token")
-	}
-
-	// need to find a way of testing generation
 }

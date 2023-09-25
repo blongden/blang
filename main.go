@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 
+	"longden.me/blang/generator"
+	"longden.me/blang/parser"
 	"longden.me/blang/tokeniser"
 )
 
@@ -25,9 +27,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s", err)
 		os.Exit(1)
 	}
-	parser := Parser{tokens: tokens}
-	ast := parser.parse()
-	generate(ast)
+	p := parser.Parser{Tokens: tokens}
+	ast := p.Parse()
+	generator.Generate(ast)
 
 	cmd := exec.Command("nasm", "-f", "macho64", "test.a", "-o", "test.o")
 	if err := cmd.Run(); err != nil {
