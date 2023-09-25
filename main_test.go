@@ -3,16 +3,17 @@ package main
 import (
 	"strconv"
 	"testing"
+
+	"longden.me/blang/tokeniser"
 )
 
 func TestExitStatementDefaultsToZero(t *testing.T) {
-	tokens := Parser{tokens: tokenise([]byte("exit"))}
-	if tokens.peek().token_type != Exit {
+	parser := Parser{tokens: tokeniser.Tokenise([]byte("exit"))}
+	if parser.peek().Type != tokeniser.Exit {
 		t.Errorf("exit does not generate exit token")
 	}
 
-	node, _ := tokens.parse_stmt()
-
+	node, _ := parser.parse_stmt()
 	if node.lhs == nil {
 		t.Errorf("exit node has no parameter")
 	}
@@ -23,8 +24,8 @@ func TestExitStatementDefaultsToZero(t *testing.T) {
 }
 
 func TestExitStatementUsesArgument(t *testing.T) {
-	tokens := Parser{tokens: tokenise([]byte("exit 1"))}
-	if tokens.peek().token_type != Exit {
+	tokens := Parser{tokens: tokeniser.Tokenise([]byte("exit 1"))}
+	if tokens.peek().Type != tokeniser.Exit {
 		t.Errorf("exit does not generate exit token")
 	}
 
@@ -72,8 +73,8 @@ var exprTests = []exprTest{
 
 func TestExprPrecedenceClimbingMulti(t *testing.T) {
 	for _, test := range exprTests {
-		tokens := Parser{tokens: tokenise([]byte(test.expr))}
-		root := tokens.parse_expr(0)
+		parser := Parser{tokens: tokeniser.Tokenise([]byte(test.expr))}
+		root := parser.parse_expr(0)
 		result := evaluateExpr(root)
 		if result != test.expected {
 			t.Errorf("answer incorrect for expression (" + test.expr + "): " + strconv.Itoa(result))
@@ -82,8 +83,8 @@ func TestExprPrecedenceClimbingMulti(t *testing.T) {
 }
 
 func TestLetAssignsVar(t *testing.T) {
-	tokens := Parser{tokens: tokenise([]byte("let x = 5"))}
-	if tokens.peek().token_type != Let {
+	tokens := Parser{tokens: tokeniser.Tokenise([]byte("let x = 5"))}
+	if tokens.peek().Type != tokeniser.Let {
 		t.Errorf("exit does not generate exit token")
 	}
 

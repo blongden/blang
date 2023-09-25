@@ -1,4 +1,4 @@
-package main
+package tokeniser
 
 import (
 	"fmt"
@@ -30,13 +30,13 @@ const (
 )
 
 type Token struct {
-	token_type TokenType
-	value      string
-	line       int
-	col        int
+	Type  TokenType
+	Value string
+	Line  int
+	Col   int
 }
 
-type Source struct {
+type source struct {
 	src    []byte
 	tokens []Token
 	sp     int
@@ -44,55 +44,64 @@ type Source struct {
 	col    int
 }
 
-func (s *Source) peek() byte {
+func (s *source) peek() byte {
 	if s.sp >= len(s.src) {
 		return 0
 	}
 	return s.src[s.sp]
 }
 
-func (s *Source) consume() byte {
+func (s *source) consume() byte {
 	b := s.src[s.sp]
 	s.sp++
 	s.col++
 	return b
 }
 
-func (s *Source) append(token Token) {
-	token.col = s.col
-	token.line = s.line
+func (s *source) append(token Token) {
+	if token.Col == 0 {
+		token.Col = s.col
+	}
+
+	if token.Line == 0 {
+		token.Line = s.line
+	}
+
 	s.tokens = append(s.tokens, token)
 }
 
-func tokenise(data []byte) []Token {
-	src := Source{src: data}
+func Tokenise(data []byte) []Token {
+	src := source{src: data, line: 1}
 
 	buf := ""
 	for src.peek() != 0 {
 		if unicode.IsLetter(rune(src.peek())) {
+			t := Token{Col: src.col, Line: src.line}
 			for unicode.IsLetter(rune(src.peek())) || unicode.IsNumber(rune(src.peek())) {
 				buf += string(src.consume())
 			}
 			switch buf {
 			case "exit":
-				src.append(Token{token_type: Exit})
+				t.Type = Exit
 			case "let":
-				src.append(Token{token_type: Let})
+				t.Type = Let
 			case "if":
-				src.append(Token{token_type: If})
+				t.Type = If
 			case "for":
-				src.append(Token{token_type: For})
+				t.Type = For
 			default:
-				src.append(Token{token_type: Identifier, value: buf})
+				t.Type = Identifier
+				t.Value = buf
 			}
+			src.append(t)
 		} else if unicode.IsDigit(rune(src.peek())) {
 			for unicode.IsDigit(rune(src.peek())) {
 				buf += string(src.consume())
 			}
 
-			src.append(Token{token_type: Int, value: buf})
+			src.append(Token{Type: Int, Value: buf})
 		} else if unicode.IsSpace(rune(src.peek())) {
-			if src.peek() == 20 {
+			if src.peek() == 10 {
 				src.line++
 				src.col = 0
 			}
@@ -101,40 +110,40 @@ func tokenise(data []byte) []Token {
 			src.consume()
 			if string(src.peek()) == "=" {
 				src.consume()
-				src.append(Token{token_type: Eq})
+				src.append(Token{Type: Eq})
 			} else {
-				src.append(Token{token_type: Assign})
+				src.append(Token{Type: Assign})
 			}
 		} else if string(src.peek()) == "+" {
 			src.consume()
-			src.append(Token{token_type: Plus})
+			src.append(Token{Type: Plus})
 		} else if string(src.peek()) == "-" {
 			src.consume()
-			src.append(Token{token_type: Minus})
+			src.append(Token{Type: Minus})
 		} else if string(src.peek()) == "*" {
 			src.consume()
-			src.append(Token{token_type: Star})
+			src.append(Token{Type: Star})
 		} else if string(src.peek()) == "/" {
 			src.consume()
-			src.append(Token{token_type: Fslash})
+			src.append(Token{Type: Fslash})
 		} else if string(src.peek()) == "(" {
 			src.consume()
-			src.append(Token{token_type: Lparen})
+			src.append(Token{Type: Lparen})
 		} else if string(src.peek()) == ")" {
 			src.consume()
-			src.append(Token{token_type: Rparen})
+			src.append(Token{Type: Rparen})
 		} else if string(src.peek()) == "{" {
 			src.consume()
-			src.append(Token{token_type: Lcurly})
+			src.append(Token{Type: Lcurly})
 		} else if string(src.peek()) == "}" {
 			src.consume()
-			src.append(Token{token_type: Rcurly})
+			src.append(Token{Type: Rcurly})
 		} else if string(src.peek()) == "<" {
 			src.consume()
-			src.append(Token{token_type: Lt})
+			src.append(Token{Type: Lt})
 		} else if string(src.peek()) == ">" {
 			src.consume()
-			src.append(Token{token_type: Gt})
+			src.append(Token{Type: Gt})
 		} else {
 			panic(fmt.Sprintf("No idea what this is yet at position %d (%c)", src.sp, src.src[src.sp]))
 		}

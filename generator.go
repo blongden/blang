@@ -102,13 +102,13 @@ func (g *Generator) gen_inverse_test(node *Node) string {
 	g.output += "    cmp rbx, rax\n"
 	switch node.node_type {
 	case NodeLt:
-		return "jg"
+		return "jge"
 	case NodeGt:
-		return "jl"
+		return "jle"
 	case NodeEq:
 		return "jne"
 	}
-	return "jne"
+	return "jle"
 }
 
 func (g *Generator) create_label() string {
@@ -205,7 +205,7 @@ func (g *Generator) pop(reg string) string {
 }
 
 func (g *Generator) assemble(stmts *StatementSequence) {
-	g.output = "global _main\n_main:\n"
+	g.output = "global _main\nsection .text\n_main:\n"
 
 	for i := 0; i < len(stmts.statements); i++ {
 		g.gen_expr(&stmts.statements[i])

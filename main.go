@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"longden.me/blang/tokeniser"
 )
 
 func main() {
@@ -19,7 +21,7 @@ func main() {
 		panic(err)
 	}
 
-	parser := Parser{tokens: tokenise(data)}
+	parser := Parser{tokens: tokeniser.Tokenise(data)}
 	ast := parser.parse()
 	generate(ast)
 
