@@ -3,6 +3,8 @@ let y = 1
 let digit = 12
 let code = 0
 
+let str = "Hello, World kjdsij!\n"
+
 for digit > 1 {
     code = x+y
     x = y
@@ -10,5 +12,7 @@ for digit > 1 {
      
     digit = digit-1
 }
+
+print str
 
 exit code

@@ -47,6 +47,8 @@ const (
 	NodeEq
 	NodeAssign
 	NodeFor
+	NodeStringLiteral
+	NodePrint
 )
 
 type StatementSequence struct {
@@ -78,6 +80,8 @@ func (t *Parser) parse_term() (*Node, error) {
 	switch tok.Type {
 	case tokeniser.Int:
 		return &Node{Type: NodeIntLiteral, Value: t.consume().Value}, nil
+	case tokeniser.String:
+		return &Node{Type: NodeStringLiteral, Value: t.consume().Value}, nil
 	case tokeniser.Identifier:
 		return &Node{Type: NodeIdentifier, Value: t.consume().Value}, nil
 	case tokeniser.Lparen:
@@ -281,8 +285,20 @@ func (t *Parser) parse_stmt() (*Node, error) {
 		stmts, _ := t.parse_scope()
 		return &Node{Type: NodeFor, Lhs: lhs, Stmts: stmts}, nil
 
+	case tokeniser.Print:
+		id := t.consume()
+		if t.peek() == nil {
+			return nil, parse_error("unexpected eof after print", id)
+		}
+
+		lhs, err := t.parse_term()
+		if err != nil {
+			return nil, err
+		}
+		return &Node{Type: NodePrint, Lhs: lhs}, nil
+
 	default:
-		return nil, errors.New("Unknown statement, " + fmt.Sprint(t.peek().Type))
+		return nil, parse_error("Unknown statement, "+fmt.Sprint(t.peek().Type), t.peek())
 	}
 }
 

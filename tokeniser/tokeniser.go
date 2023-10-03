@@ -27,6 +27,8 @@ const (
 	Gt
 	If
 	For
+	String
+	Print
 )
 
 type Token struct {
@@ -81,6 +83,8 @@ func Tokenise(data []byte) ([]Token, error) {
 				t.Type = If
 			case "for":
 				t.Type = For
+			case "print":
+				t.Type = Print
 			default:
 				t.Type = Identifier
 				t.Value = buf
@@ -99,6 +103,14 @@ func Tokenise(data []byte) ([]Token, error) {
 				src.col = 0
 			}
 			continue
+		} else if string(src.peek()) == "\"" {
+			src.consume() // string
+			for string(src.peek()) != "\"" {
+				buf += string(src.consume())
+			}
+			src.consume()
+			t.Type = String
+			t.Value = buf
 		} else if string(src.peek()) == "=" {
 			src.consume()
 			if string(src.peek()) == "=" {

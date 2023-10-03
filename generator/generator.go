@@ -15,12 +15,18 @@ type Variable struct {
 
 type Stack []int
 
+type String struct {
+	name  string
+	value string
+}
+
 type Generator struct {
 	vars        []Variable
 	stack_size  int
 	scopes      Stack
 	output      string
 	label_count int
+	strings     []String
 }
 
 func (g *Generator) find_var(s string) *Variable {
@@ -38,6 +44,11 @@ func (g *Generator) gen_term(node *parser.Node) {
 	if node.Type == parser.NodeIntLiteral {
 		g.output += "    mov rax, " + node.Value + "\n"
 		g.output += g.push("rax", "push literal on stack")
+	} else if node.Type == parser.NodeStringLiteral {
+		label := g.create_label()
+		g.strings = append(g.strings, String{name: label, value: node.Value})
+		g.output += g.push(label, "string")
+
 	} else if node.Type == parser.NodeIdentifier {
 		variable := g.find_var(node.Value)
 		if variable == nil {
@@ -123,7 +134,8 @@ func (g *Generator) gen_expr(node *parser.Node) {
 	switch node.Type {
 	case parser.NodeExit:
 		g.gen_term(node.Lhs)
-		g.output += "    mov rax, 0x2000001 ; exit system call\n"
+		//g.output += "    mov rax, 0x2000001 ; exit system call\n"
+		g.output += "    mov rax, 60 ; exit system call\n"
 		g.output += g.pop("rdi")
 		g.output += "    syscall\n"
 	case parser.NodeLet:
@@ -132,6 +144,7 @@ func (g *Generator) gen_expr(node *parser.Node) {
 			panic("Variable already declared")
 		}
 		g.gen_term(node.Rhs) // store value on stack
+
 		g.vars = append(g.vars, Variable{name: node.Lhs.Value, loc: g.stack_size})
 	case parser.NodeScope:
 		g.gen_scope(node)
@@ -164,6 +177,24 @@ func (g *Generator) gen_expr(node *parser.Node) {
 		test = g.gen_test(node.Lhs)
 		g.output += "    " + test + " " + label_start + "\n"
 		g.output += "    ; endfor\n" + label_end + ":\n"
+	case parser.NodePrint:
+		g.gen_term(node.Lhs)
+		g.output += g.pop("rsi")
+		g.output += "    xor rdx, rdx\n"
+		g.output += "    mov rbp, rsi\n"
+		label := g.create_label()
+		label_end := g.create_label()
+		g.output += label + ":\n"
+		g.output += "    cmp [rbp], byte 0\n"
+		g.output += "    jz " + label_end + "\n"
+		g.output += "    inc rbp\n"
+		g.output += "    inc rdx\n"
+		g.output += "    jmp " + label + "\n"
+		g.output += label_end + ":\n"
+		g.output += "    mov rax, 1 ; sys_write\n"
+		g.output += "    mov rdi, 1 ; stdout\n"
+		g.output += "    syscall\n"
+
 	default:
 		panic("Can't generate expression")
 	}
@@ -207,15 +238,22 @@ func (g *Generator) pop(reg string) string {
 }
 
 func (g *Generator) assemble(stmts *parser.StatementSequence) {
-	g.output = "global _main\nsection .text\n_main:\n"
+	// g.output = "global _main\nsection .text\n_main:\n"
+	g.output = "global _start\nsection .text\n_start:\n"
 
 	for i := 0; i < len(stmts.Statements); i++ {
 		g.gen_expr(&stmts.Statements[i])
 	}
 
-	g.output += "    mov rax, 0x2000001 ; exit system call\n"
+	// g.output += "    mov rax, 0x2000001 ; exit system call\n"
+	g.output += "    mov rax, 60 ; exit system call\n"
 	g.output += "    mov rdi, 0\n"
 	g.output += "    syscall\n"
+
+	g.output += "section .data\n"
+	for i := 0; i < len(g.strings); i++ {
+		g.output += g.strings[i].name + " db \"" + g.strings[i].value + "\", 0\n"
+	}
 }
 
 func Generate(stmts *parser.StatementSequence) {

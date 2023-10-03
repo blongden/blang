@@ -1,0 +1,83 @@
+global _start
+section .text
+_start:
+    mov rax, 0
+    push rax ; push literal on stack
+    mov rax, 1
+    push rax ; push literal on stack
+    mov rax, 12
+    push rax ; push literal on stack
+    mov rax, 0
+    push rax ; push literal on stack
+    push label0 ; string
+    ;for
+    push qword [rsp + 16] ; push digit on stack
+    mov rax, 1
+    push rax ; push literal on stack
+    pop rax
+    pop rbx
+    cmp rbx, rax
+    jle label2
+label1:
+    ; scope begins
+    ; assignment
+    push qword [rsp + 24] ; push y on stack
+    push qword [rsp + 40] ; push x on stack
+    pop rax
+    pop rbx
+    add rax, rbx
+    push rax ; +
+    pop rax
+    mov qword [rsp + 8], rax
+    ; assignment
+    push qword [rsp + 24] ; push y on stack
+    pop rax
+    mov qword [rsp + 32], rax
+    ; assignment
+    push qword [rsp + 8] ; push code on stack
+    pop rax
+    mov qword [rsp + 24], rax
+    ; assignment
+    mov rax, 1
+    push rax ; push literal on stack
+    push qword [rsp + 24] ; push digit on stack
+    pop rax
+    pop rbx
+    sub rax, rbx
+    push rax ; -
+    pop rax
+    mov qword [rsp + 16], rax
+    ; scope ends
+    add rsp, 0
+    push qword [rsp + 16] ; push digit on stack
+    mov rax, 1
+    push rax ; push literal on stack
+    pop rax
+    pop rbx
+    cmp rbx, rax
+    jg label1
+    ; endfor
+label2:
+    push qword [rsp + 0] ; push str on stack
+    pop rsi
+    xor rdx, rdx
+    mov rbp, rsi
+label3:
+    cmp [rbp], byte 0
+    jz label4
+    inc rbp
+    inc rdx
+    jmp label3
+label4:
+    mov rax, 1 ; sys_write
+    mov rdi, 1 ; stdout
+    syscall
+    push qword [rsp + 8] ; push code on stack
+    mov rax, 60 ; exit system call
+    pop rdi
+    syscall
+    mov rax, 60 ; exit system call
+    mov rdi, 0
+    syscall
+section .data
+label0 db "Hello, World kjdsij!", 0
