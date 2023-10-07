@@ -1,17 +1,19 @@
-let x = 0
-let y = 1
-let digit = 12
-let code = 0
+x := 0
+y := 1
+digit := 12
+code := 0
 
-let str = "Hello, World kjdsij!\n"
+str := "Hello, World"
 
 for digit > 1 {
     code = x+y
     x = y
     y = code
-     
+
     digit = digit-1
 }
+
+p := str + "x"
 
 print str
 

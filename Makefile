@@ -6,10 +6,10 @@ build:
 	go build -o ${BINARY_NAME} .
 
 test:
-	go test ./tokeniser ./parser ./generator .
+	go test -v ./...
 
 run:
-	go run . test.bl
+	go run . -o example example.bl
 
 clean:
 	go clean

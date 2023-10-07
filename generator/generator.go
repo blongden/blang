@@ -256,11 +256,11 @@ func (g *Generator) assemble(stmts *parser.StatementSequence) {
 	}
 }
 
-func Generate(stmts *parser.StatementSequence) {
+func Generate(stmts *parser.StatementSequence, fn string) {
 	g := Generator{}
 	g.assemble(stmts)
 
-	if err := os.WriteFile("test.a", []byte(g.output), 0644); err != nil {
+	if err := os.WriteFile(fn, []byte(g.output), 0644); err != nil {
 		fmt.Println(err)
 	}
 }

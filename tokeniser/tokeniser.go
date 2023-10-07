@@ -29,6 +29,7 @@ const (
 	For
 	String
 	Print
+	LetOp
 )
 
 type Token struct {
@@ -149,6 +150,14 @@ func Tokenise(data []byte) ([]Token, error) {
 		} else if string(src.peek()) == ">" {
 			src.consume()
 			t.Type = Gt
+		} else if string(src.peek()) == ":" {
+			src.consume()
+			if string(src.peek()) == "=" {
+				src.consume()
+				t.Type = LetOp
+			} else {
+				return nil, fmt.Errorf("expected '=' at line %d column %d", src.line, src.col)
+			}
 		} else {
 			return nil, fmt.Errorf("no idea what this is yet at position %d (%c)", src.sp, src.src[src.sp])
 		}

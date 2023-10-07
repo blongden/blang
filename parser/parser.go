@@ -79,11 +79,20 @@ func (t *Parser) parse_term() (*Node, error) {
 
 	switch tok.Type {
 	case tokeniser.Int:
-		return &Node{Type: NodeIntLiteral, Value: t.consume().Value}, nil
+		return &Node{
+			Type:  NodeIntLiteral,
+			Value: t.consume().Value,
+		}, nil
 	case tokeniser.String:
-		return &Node{Type: NodeStringLiteral, Value: t.consume().Value}, nil
+		return &Node{
+			Type:  NodeStringLiteral,
+			Value: t.consume().Value,
+		}, nil
 	case tokeniser.Identifier:
-		return &Node{Type: NodeIdentifier, Value: t.consume().Value}, nil
+		return &Node{
+			Type:  NodeIdentifier,
+			Value: t.consume().Value,
+		}, nil
 	case tokeniser.Lparen:
 		t.consume()
 		expr, err := t.parse_expr(0)
@@ -266,15 +275,23 @@ func (t *Parser) parse_stmt() (*Node, error) {
 			return nil, parse_error("unexpected end of file", id)
 		}
 
-		if t.peek().Type != tokeniser.Assign {
+		node := Node{}
+		if t.peek().Type == tokeniser.LetOp {
+			node.Type = NodeLet
+		} else if t.peek().Type == tokeniser.Assign {
+			node.Type = NodeAssign
+		} else {
 			return nil, parse_error(fmt.Sprintf("expected an assignment, got %d", t.peek().Type), t.peek())
 		}
+
 		t.consume()
 		rhs, err := t.parse_expr(0)
 		if err != nil {
 			return nil, err
 		}
-		return &Node{Type: NodeAssign, Lhs: &lhs, Rhs: rhs}, nil
+		node.Lhs = &lhs
+		node.Rhs = rhs
+		return &node, nil
 
 	case tokeniser.For:
 		t.consume()
@@ -291,7 +308,7 @@ func (t *Parser) parse_stmt() (*Node, error) {
 			return nil, parse_error("unexpected eof after print", id)
 		}
 
-		lhs, err := t.parse_term()
+		lhs, err := t.parse_expr(0)
 		if err != nil {
 			return nil, err
 		}
