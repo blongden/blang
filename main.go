@@ -27,29 +27,35 @@ type TypeChecker struct {
 	variables []Variable
 }
 
-func (tc *TypeChecker) GetType(node *parser.Node) VarType {
+func (tc *TypeChecker) GetType(node *parser.Node) (*VarType, error) {
 	ty := Int
 	if node.Type == parser.NodeStringLiteral {
 		ty = String
 	} else if node.Type == parser.NodeIdentifier {
 		for _, v := range tc.variables {
-
 			if v.Name == node.Value {
-				return v.Type
+				ty = v.Type
+				return &ty, nil
 			}
 		}
 
-		panic("Compiler error, variable not in scope")
+		return nil, fmt.Errorf("compiler error, variable not in scope")
 	} else if node.Type == parser.NodeAdd {
-		ty = tc.GetType(node.Lhs)
-		if ty == tc.GetType(node.Rhs) {
-			return ty
-		} else {
-			panic("Type mismatch")
+		lhs, err := tc.GetType(node.Lhs)
+		if err != nil {
+			return nil, err
+		}
+		rhs, err := tc.GetType(node.Rhs)
+		if err != nil {
+			return nil, err
+		}
+
+		if lhs != rhs {
+			return nil, fmt.Errorf("can't add variables of differing types")
 		}
 	}
 
-	return ty
+	return &ty, nil
 }
 
 func (tc *TypeChecker) CheckNode(node *parser.Node) (*parser.Node, error) {
@@ -66,13 +72,25 @@ func (tc *TypeChecker) CheckNode(node *parser.Node) (*parser.Node, error) {
 	lhs, _ := tc.CheckNode(node.Lhs)
 	if node.Type == parser.NodeLet {
 		// infer the type
-		tc.variables = append(tc.variables, Variable{Name: lhs.Value, Type: tc.GetType(rhs)})
+		ty, err := tc.GetType(rhs)
+		if err != nil {
+			return nil, err
+		}
+		tc.variables = append(tc.variables, Variable{Name: lhs.Value, Type: *ty})
 	}
 
 	if node.Type == parser.NodeAssign {
-		// does variable exist?
-		if tc.GetType(node.Lhs) != tc.GetType(node.Rhs) {
-			panic("djshdjshs")
+		lhs, err := tc.GetType(node.Lhs)
+		if err != nil {
+			return nil, err
+		}
+		rhs, err := tc.GetType(node.Rhs)
+		if err != nil {
+			return nil, err
+		}
+
+		if lhs != rhs {
+			return nil, fmt.Errorf("mismatched type when attempting to reassign variable")
 		}
 	}
 	return node, nil
@@ -80,7 +98,10 @@ func (tc *TypeChecker) CheckNode(node *parser.Node) (*parser.Node, error) {
 
 func (tc *TypeChecker) TypeCheck(seq *parser.StatementSequence) error {
 	for i := 0; i < len(seq.Statements); i++ {
-		tc.CheckNode(&seq.Statements[i])
+		_, err := tc.CheckNode(&seq.Statements[i])
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -95,17 +116,26 @@ func main() {
 	}
 	data, err := os.ReadFile(source)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
 	tokens, err := tokeniser.Tokenise(data)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s", err)
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "Token error: %s\n", err)
+		os.Exit(3)
 	}
 	p := parser.Parser{Tokens: tokens}
-	ast := p.Parse()
+	ast, err := p.Parse()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Parse error: %s\n", err)
+		os.Exit(4)
+	}
 	tc := TypeChecker{}
-	tc.TypeCheck(ast)
+	err = tc.TypeCheck(ast)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Type error: %s\n", err)
+		os.Exit(5)
+	}
 
 	asm_fn := *output + ".a"
 	o_fn := *output + ".o"

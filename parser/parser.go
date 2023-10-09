@@ -63,7 +63,7 @@ type Node struct {
 	Stmts *StatementSequence
 }
 
-func parse_error(message string, token *tokeniser.Token) error {
+func ParseError(message string, token *tokeniser.Token) error {
 	return fmt.Errorf(message+" at line %d, col %d", token.Line, token.Col)
 }
 
@@ -105,7 +105,7 @@ func (t *Parser) parse_term() (*Node, error) {
 		}
 
 		if t.peek().Type != tokeniser.Rparen {
-			return nil, parse_error("expected ')'", t.peek())
+			return nil, ParseError("expected ')'", t.peek())
 		}
 		t.consume()
 		return expr, nil
@@ -195,7 +195,7 @@ func (t *Parser) parse_expr(min_prec int) (*Node, error) {
 		}
 
 		if rhs == nil {
-			return nil, parse_error("invalid expression", op)
+			return nil, ParseError("invalid expression", op)
 		}
 		expr2 := Node{Lhs: expr, Rhs: rhs}
 		if op.Type == tokeniser.Plus {
@@ -232,13 +232,13 @@ func (t *Parser) parse_stmt() (*Node, error) {
 	case tokeniser.Let:
 		c := t.consume() // let
 		if t.peek() != nil && t.peek().Type != tokeniser.Identifier {
-			return nil, parse_error("expected identifier", c)
+			return nil, ParseError("expected identifier", c)
 		}
 
 		c = t.consume()
 		lhs := Node{Type: NodeIdentifier, Value: c.Value} // x
 		if t.peek() != nil && t.peek().Type != tokeniser.Assign {
-			return nil, parse_error("expected '='", c)
+			return nil, ParseError("expected '='", c)
 		}
 
 		t.consume()                 // =
@@ -272,7 +272,7 @@ func (t *Parser) parse_stmt() (*Node, error) {
 		id := t.consume()
 		lhs := Node{Type: NodeIdentifier, Value: id.Value}
 		if t.peek() == nil {
-			return nil, parse_error("unexpected end of file", id)
+			return nil, ParseError("unexpected end of file", id)
 		}
 
 		node := Node{}
@@ -281,7 +281,7 @@ func (t *Parser) parse_stmt() (*Node, error) {
 		} else if t.peek().Type == tokeniser.Assign {
 			node.Type = NodeAssign
 		} else {
-			return nil, parse_error(fmt.Sprintf("expected an assignment, got %d", t.peek().Type), t.peek())
+			return nil, ParseError(fmt.Sprintf("expected an assignment, got %d", t.peek().Type), t.peek())
 		}
 
 		t.consume()
@@ -305,7 +305,7 @@ func (t *Parser) parse_stmt() (*Node, error) {
 	case tokeniser.Print:
 		id := t.consume()
 		if t.peek() == nil {
-			return nil, parse_error("unexpected eof after print", id)
+			return nil, ParseError("unexpected eof after print", id)
 		}
 
 		lhs, err := t.parse_expr(0)
@@ -315,7 +315,7 @@ func (t *Parser) parse_stmt() (*Node, error) {
 		return &Node{Type: NodePrint, Lhs: lhs}, nil
 
 	default:
-		return nil, parse_error("Unknown statement, "+fmt.Sprint(t.peek().Type), t.peek())
+		return nil, ParseError("Unknown statement, "+fmt.Sprint(t.peek().Type), t.peek())
 	}
 }
 
@@ -325,7 +325,7 @@ func (t *Parser) parse_scope() (*StatementSequence, error) {
 	}
 
 	if t.peek().Type != tokeniser.Lcurly {
-		return nil, parse_error("expected '{'", t.peek())
+		return nil, ParseError("expected '{'", t.peek())
 	}
 
 	c := t.consume()
@@ -339,18 +339,18 @@ func (t *Parser) parse_scope() (*StatementSequence, error) {
 	}
 
 	if len(stmts.Statements) == 0 {
-		return nil, parse_error("at least one statement required in scope", c)
+		return nil, ParseError("at least one statement required in scope", c)
 	}
 
 	if t.peek() == nil || t.peek().Type != tokeniser.Rcurly {
-		return nil, parse_error("expected '}'", t.peek())
+		return nil, ParseError("expected '}'", t.peek())
 	}
 	t.consume()
 
 	return &stmts, nil
 }
 
-func (t *Parser) Parse() *StatementSequence {
+func (t *Parser) Parse() (*StatementSequence, error) {
 	stmts := StatementSequence{}
 
 	for {
@@ -358,11 +358,11 @@ func (t *Parser) Parse() *StatementSequence {
 			break
 		}
 		stmt, err := t.parse_stmt()
-		if stmt == nil {
-			panic("Parse error: " + err.Error())
+		if err != nil {
+			return nil, err
 		}
 		stmts.append(stmt)
 	}
 
-	return &stmts
+	return &stmts, nil
 }

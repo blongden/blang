@@ -12,9 +12,5 @@ for digit > 1 {
 
     digit = digit-1
 }
-
-p := str + "x"
-
-print str
-
+str = 3
 exit code
