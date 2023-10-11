@@ -26,6 +26,7 @@ term
   : integer
   | identifier
   | paren_expr
+  | function
   ;
 
 test
@@ -51,6 +52,7 @@ statement
   | scope
   | 'if' test scope
   | 'for' test scope
+  | function
   ;
 
 ```

@@ -11,6 +11,7 @@ for digit > 1 {
     y = code
 
     digit = digit-1
+    print itoa(code)
 }
-str = 3
+print "done!"
 exit code

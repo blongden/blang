@@ -40,6 +40,13 @@ func (g *Generator) find_var(s string) *Variable {
 	return variable
 }
 
+func (g *Generator) gen_call(node *parser.Node) {
+	g.gen_term(node.Rhs.Lhs) // only supports one arg in rdi for now.
+	g.output += g.pop("rdi")
+	g.output += "    call " + node.Value + "\n"
+	g.output += g.push("rax", "function call result is in rax")
+}
+
 func (g *Generator) gen_term(node *parser.Node) {
 	if node.Type == parser.NodeIntLiteral {
 		g.output += "    mov rax, " + node.Value + "\n"
@@ -56,6 +63,8 @@ func (g *Generator) gen_term(node *parser.Node) {
 		}
 		// found variable, get location
 		g.output += g.push("qword [rsp + "+fmt.Sprint((g.stack_size-variable.loc)*8)+"]", "push "+variable.name+" on stack")
+	} else if node.Type == parser.NodeCall {
+		g.gen_call(node)
 	} else if node.Type == parser.NodeAdd {
 		g.gen_term(node.Rhs)
 		g.gen_term(node.Lhs)
@@ -86,7 +95,7 @@ func (g *Generator) gen_term(node *parser.Node) {
 		g.output += "    div rbx\n"
 		g.output += g.push("rax", "/")
 	} else {
-		panic("error parsing expression")
+		panic("error parsing expression: " + fmt.Sprint(node))
 	}
 }
 
@@ -179,22 +188,10 @@ func (g *Generator) gen_expr(node *parser.Node) {
 		g.output += "    ; endfor\n" + label_end + ":\n"
 	case parser.NodePrint:
 		g.gen_term(node.Lhs)
-		g.output += g.pop("rsi")
-		g.output += "    xor rdx, rdx\n"
-		g.output += "    mov rbp, rsi\n"
-		label := g.create_label()
-		label_end := g.create_label()
-		g.output += label + ":\n"
-		g.output += "    cmp [rbp], byte 0\n"
-		g.output += "    jz " + label_end + "\n"
-		g.output += "    inc rbp\n"
-		g.output += "    inc rdx\n"
-		g.output += "    jmp " + label + "\n"
-		g.output += label_end + ":\n"
-		g.output += "    mov rax, 1 ; sys_write\n"
-		g.output += "    mov rdi, 1 ; stdout\n"
-		g.output += "    syscall\n"
-
+		g.output += g.pop("rsi") // set arg for print
+		g.output += "    call print\n"
+	case parser.NodeCall:
+		g.gen_call(node)
 	default:
 		panic("Can't generate expression")
 	}
@@ -239,7 +236,7 @@ func (g *Generator) pop(reg string) string {
 
 func (g *Generator) assemble(stmts *parser.StatementSequence) {
 	// g.output = "global _main\nsection .text\n_main:\n"
-	g.output = "global _start\nsection .text\n_start:\n"
+	g.output = "global _start\nsection .text\nextern itoa,print\n_start:\n"
 
 	for i := 0; i < len(stmts.Statements); i++ {
 		g.gen_expr(&stmts.Statements[i])

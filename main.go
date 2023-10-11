@@ -39,7 +39,7 @@ func (tc *TypeChecker) GetType(node *parser.Node) (*VarType, error) {
 			}
 		}
 
-		return nil, fmt.Errorf("compiler error, variable not in scope")
+		return nil, fmt.Errorf("variable not in scope")
 	} else if node.Type == parser.NodeAdd {
 		lhs, err := tc.GetType(node.Lhs)
 		if err != nil {
@@ -53,6 +53,9 @@ func (tc *TypeChecker) GetType(node *parser.Node) (*VarType, error) {
 		if lhs != rhs {
 			return nil, fmt.Errorf("can't add variables of differing types")
 		}
+	} else if node.Type == parser.NodeCall {
+		// panic("type check not implemented")
+		ty = String
 	}
 
 	return &ty, nil
@@ -93,6 +96,17 @@ func (tc *TypeChecker) CheckNode(node *parser.Node) (*parser.Node, error) {
 			return nil, fmt.Errorf("mismatched type when attempting to reassign variable")
 		}
 	}
+
+	if node.Type == parser.NodePrint {
+		lhs, err := tc.GetType(node.Lhs)
+		if err != nil {
+			return nil, err
+		}
+
+		if *lhs != String {
+			return nil, fmt.Errorf("print expects a string")
+		}
+	}
 	return node, nil
 }
 
@@ -124,6 +138,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Token error: %s\n", err)
 		os.Exit(3)
 	}
+	fmt.Println(tokens)
 	p := parser.Parser{Tokens: tokens}
 	ast, err := p.Parse()
 	if err != nil {
@@ -148,7 +163,7 @@ func main() {
 	}
 
 	// cmd = exec.Command("ld", "-macosx_version_min", "13.5.0", "-L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib", "-lSystem", "-o", "test", "test.o")
-	cmd = exec.Command("ld", "-o", *output, o_fn)
+	cmd = exec.Command("ld", "-o", *output, "x86-64/itoa.o", "x86-64/print.o", o_fn)
 	cmd.Stderr = os.Stdout
 	if err := cmd.Run(); err != nil {
 		fmt.Println(cmd)

@@ -49,6 +49,8 @@ const (
 	NodeFor
 	NodeStringLiteral
 	NodePrint
+	NodeParam
+	NodeCall
 )
 
 type StatementSequence struct {
@@ -71,6 +73,28 @@ func (s *StatementSequence) append(node *Node) {
 	s.Statements = append(s.Statements, *node)
 }
 
+func (t *Parser) parse_identifier() (*Node, error) {
+	id := t.consume()
+	if t.peek() != nil && t.peek().Type == tokeniser.Lparen {
+		t.consume()
+		var rhs *Node
+		for t.peek().Type != tokeniser.Rparen {
+			value, err := t.parse_expr(0)
+			if err != nil {
+				return nil, err
+			}
+			rhs = &Node{Type: NodeParam, Lhs: value}
+		}
+		t.consume()
+		return &Node{Type: NodeCall, Value: id.Value, Rhs: rhs}, nil
+	}
+
+	return &Node{
+		Type:  NodeIdentifier,
+		Value: id.Value,
+	}, nil
+}
+
 func (t *Parser) parse_term() (*Node, error) {
 	tok := t.peek()
 	if tok == nil {
@@ -89,10 +113,7 @@ func (t *Parser) parse_term() (*Node, error) {
 			Value: t.consume().Value,
 		}, nil
 	case tokeniser.Identifier:
-		return &Node{
-			Type:  NodeIdentifier,
-			Value: t.consume().Value,
-		}, nil
+		return t.parse_identifier()
 	case tokeniser.Lparen:
 		t.consume()
 		expr, err := t.parse_expr(0)
@@ -269,29 +290,31 @@ func (t *Parser) parse_stmt() (*Node, error) {
 		return &Node{Type: NodeIf, Lhs: lhs, Stmts: stmts}, nil
 
 	case tokeniser.Identifier:
-		id := t.consume()
-		lhs := Node{Type: NodeIdentifier, Value: id.Value}
-		if t.peek() == nil {
-			return nil, ParseError("unexpected end of file", id)
-		}
-
-		node := Node{}
-		if t.peek().Type == tokeniser.LetOp {
-			node.Type = NodeLet
-		} else if t.peek().Type == tokeniser.Assign {
-			node.Type = NodeAssign
-		} else {
-			return nil, ParseError(fmt.Sprintf("expected an assignment, got %d", t.peek().Type), t.peek())
-		}
-
-		t.consume()
-		rhs, err := t.parse_expr(0)
+		id, err := t.parse_identifier()
 		if err != nil {
 			return nil, err
 		}
-		node.Lhs = &lhs
-		node.Rhs = rhs
-		return &node, nil
+		if id.Type == NodeIdentifier {
+			lhs := id
+			node := Node{}
+			if t.peek().Type == tokeniser.LetOp {
+				node.Type = NodeLet
+			} else if t.peek().Type == tokeniser.Assign {
+				node.Type = NodeAssign
+			} else {
+				return nil, ParseError(fmt.Sprintf("expected an assignment, got %d", t.peek().Type), t.peek())
+			}
+
+			t.consume()
+			rhs, err := t.parse_expr(0)
+			if err != nil {
+				return nil, err
+			}
+			node.Lhs = lhs
+			node.Rhs = rhs
+			id = &node
+		}
+		return id, nil
 
 	case tokeniser.For:
 		t.consume()
@@ -312,6 +335,7 @@ func (t *Parser) parse_stmt() (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return &Node{Type: NodePrint, Lhs: lhs}, nil
 
 	default:
