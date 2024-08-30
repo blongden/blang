@@ -49,6 +49,7 @@ paren_expr
 statement
   : 'exit' [expr]
   | 'let' identifier '=' expr
+  | identifier ':=' expr
   | scope
   | 'if' test scope
   | 'for' test scope

@@ -138,7 +138,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Token error: %s\n", err)
 		os.Exit(3)
 	}
-	fmt.Println(tokens)
 	p := parser.Parser{Tokens: tokens}
 	ast, err := p.Parse()
 	if err != nil {

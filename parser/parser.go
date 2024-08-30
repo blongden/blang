@@ -49,6 +49,7 @@ const (
 	NodeFor
 	NodeStringLiteral
 	NodePrint
+	NodePrintln
 	NodeParam
 	NodeCall
 )
@@ -338,6 +339,18 @@ func (t *Parser) parse_stmt() (*Node, error) {
 
 		return &Node{Type: NodePrint, Lhs: lhs}, nil
 
+	case tokeniser.Println:
+		id := t.consume()
+		if t.peek() == nil {
+			return nil, ParseError("unexpected eof after print", id)
+		}
+
+		lhs, err := t.parse_expr(0)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Node{Type: NodePrintln, Lhs: lhs}, nil
 	default:
 		return nil, ParseError("Unknown statement, "+fmt.Sprint(t.peek().Type), t.peek())
 	}

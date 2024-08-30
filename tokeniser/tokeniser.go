@@ -29,6 +29,7 @@ const (
 	For
 	String
 	Print
+	Println
 	LetOp
 )
 
@@ -86,6 +87,8 @@ func Tokenise(data []byte) ([]Token, error) {
 				t.Type = For
 			case "print":
 				t.Type = Print
+			case "println":
+				t.Type = Println
 			default:
 				t.Type = Identifier
 				t.Value = buf

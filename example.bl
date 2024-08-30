@@ -2,7 +2,6 @@ x := 0
 y := 1
 digit := 12
 code := 0
-
 str := "Hello, World"
 
 for digit > 1 {
@@ -11,7 +10,7 @@ for digit > 1 {
     y = code
 
     digit = digit-1
-    print itoa(code)
+    println itoa(code)
 }
-print "done!"
+println "done!"
 exit code

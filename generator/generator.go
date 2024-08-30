@@ -190,6 +190,10 @@ func (g *Generator) gen_expr(node *parser.Node) {
 		g.gen_term(node.Lhs)
 		g.output += g.pop("rsi") // set arg for print
 		g.output += "    call print\n"
+	case parser.NodePrintln:
+		g.gen_term(node.Lhs)
+		g.output += g.pop("rsi") // set arg for print
+		g.output += "    call println\n"
 	case parser.NodeCall:
 		g.gen_call(node)
 	default:
@@ -236,7 +240,7 @@ func (g *Generator) pop(reg string) string {
 
 func (g *Generator) assemble(stmts *parser.StatementSequence) {
 	// g.output = "global _main\nsection .text\n_main:\n"
-	g.output = "global _start\nsection .text\nextern itoa,print\n_start:\n"
+	g.output = "global _start\nsection .text\nextern itoa,print,println\n_start:\n"
 
 	for i := 0; i < len(stmts.Statements); i++ {
 		g.gen_expr(&stmts.Statements[i])
