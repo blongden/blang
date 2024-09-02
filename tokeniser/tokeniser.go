@@ -134,6 +134,12 @@ func Tokenise(data []byte) ([]Token, error) {
 			t.Type = Star
 		} else if string(src.peek()) == "/" {
 			src.consume()
+			if string(src.peek()) == "/" {
+				for src.peek() != 10 {
+					src.consume()
+				}
+				continue
+			}
 			t.Type = Fslash
 		} else if string(src.peek()) == "(" {
 			src.consume()
