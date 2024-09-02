@@ -151,7 +151,7 @@ func main() {
 		os.Exit(5)
 	}
 
-	asm_fn := *output + ".a"
+	asm_fn := *output + ".asm"
 	o_fn := *output + ".o"
 	generator.Generate(ast, asm_fn)
 
